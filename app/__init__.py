@@ -5,7 +5,8 @@ import os
 import json
 from datetime import datetime
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='../templates')
+
 app.secret_key = 'supersecretkey'
 
 INPUT_CSV = '/mnt/ceph/storage/data-tmp/current/majo2970/illumulus-label/labeled_data_with_entities.csv'
@@ -88,4 +89,5 @@ def annotate():
                            total_concepts=len(objects))
 
 if __name__ == '__main__':
+
     app.run(debug=True)
