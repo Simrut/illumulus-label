@@ -57,11 +57,14 @@ def annotate():
 
     row = input_data.iloc[image_idx]
 
+
+    # Keep full row from input_data but update only `important_characters_and_objects` if already annotated
     if os.path.exists(OUTPUT_CSV):
         output_df = pd.read_csv(OUTPUT_CSV)
         matched = output_df[output_df['file_name'] == row['file_name']]
         if not matched.empty:
-            row = matched.iloc[0]
+            annotated_row = matched.iloc[0]
+            row['important_characters_and_objects'] = annotated_row['important_characters_and_objects']
 
     objects = json.loads(row['important_characters_and_objects'])
 
