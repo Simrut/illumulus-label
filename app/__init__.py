@@ -1,5 +1,3 @@
-# app.py
-
 from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory
 from pathlib import Path
 import pandas as pd
@@ -10,9 +8,9 @@ from datetime import datetime
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
 
-INPUT_CSV = '/home/simon-ruth/Documents/thesis-ruth/data_sources/illumulus-examples/CRUX_labeled_dataset/labeled_stories/labeled_data_with_entities.csv'
-OUTPUT_CSV = 'data/annotations.csv'
-IMAGE_FOLDER = '/home/simon-ruth/Documents/thesis-ruth/data_sources/illumulus-examples/illumulus-stories/img/'
+INPUT_CSV = '/mnt/ceph/storage/data-tmp/current/majo2970/illumulus-label/labeled_data_with_entities.csv'
+OUTPUT_CSV = '/mnt/ceph/storage/data-tmp/current/majo2970/illumulus-label/data/annotations.csv'
+IMAGE_FOLDER = '/mnt/ceph/storage/data-tmp/current/majo2970/illumulus-label/img/'
 
 input_data = pd.read_csv(INPUT_CSV)
 
