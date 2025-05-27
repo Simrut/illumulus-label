@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Concept Annotation</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #f9f9fb;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      padding: 2rem;
+    }
+
+    .container {
+      max-width: 800px;
+      width: 100%;
+      text-align: center;
+      background-color: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    }
+
+    img {
+      max-width: 100%;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+    }
+
+    .btn-group {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+
+    button {
+      padding: 0.75rem 2rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    .yes {
+      background-color: #4caf50;
+      color: white;
+    }
+
+    .yes:hover {
+      background-color: #43a047;
+    }
+
+    .no {
+      background-color: #f44336;
+      color: white;
+    }
+
+    .no:hover {
+      background-color: #e53935;
+    }
+
+    .back-btn {
+      background-color: #90a4ae;
+      color: white;
+    }
+
+    .back-btn:hover {
+      background-color: #78909c;
+    }
+
+    .progress {
+      color: #555;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="progress">
+      Image {{ image_num }} of {{ total_images }} &middot;
+      Concept {{ concept_num }} of {{ total_concepts }}
+    </div>
+
+    <img src="{{ image_path }}" alt="Image for annotation">
+
+    <h2>Is "<em>{{ concept.name }}</em>" present in the image?</h2>
+
+    <form method="post">
+      <div class="btn-group">
+        <button type="submit" name="present" value="yes" class="yes">Yes</button>
+        <button type="submit" name="present" value="no" class="no">No</button>
+      </div>
+      <input type="hidden" name="action" value="next">
+    </form>
+
+    <form method="post" style="margin-top: 1rem;">
+      <input type="hidden" name="action" value="prev">
+      <button type="submit" class="back-btn">← Back</button>
+    </form>
+  </div>
+</body>
+</html>
