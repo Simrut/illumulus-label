@@ -24,7 +24,7 @@ def index():
 
 @app.route('/annotate', methods=['GET', 'POST'])
 def annotate():
-    if request.method == 'GET' and 'image_index' not in session:
+    if request.method == 'GET' and (not os.path.exists(OUTPUT_CSV) or 'image_index' not in session):
         image_idx = 0
         concept_idx = 0
 
