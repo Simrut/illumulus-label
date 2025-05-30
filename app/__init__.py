@@ -24,7 +24,7 @@ def index():
 
 @app.route('/annotate', methods=['GET', 'POST'])
 def annotate():
-    if request.method == 'GET':
+    if request.method == 'GET' and 'image_index' not in session:
         image_idx = 0
         concept_idx = 0
 
@@ -92,11 +92,23 @@ def annotate():
         if action == 'prev':
             if concept_idx > 0:
                 session['concept_index'] = concept_idx - 1
-            elif image_idx > 0:
-                session['image_index'] = image_idx - 1
-                previous_row = input_data.iloc[image_idx - 1]
-                previous_objects = json.loads(previous_row['important_characters_and_objects'])
-                session['concept_index'] = len(previous_objects) - 1
+            else:
+                if image_idx > 0:
+                    image_idx -= 1
+                    row = input_data.iloc[image_idx]
+                    objects = json.loads(row['important_characters_and_objects'])
+
+                    if os.path.exists(OUTPUT_CSV):
+                        output_df = pd.read_csv(OUTPUT_CSV)
+                        match = output_df[(output_df['file_name'] == row['file_name']) & (output_df['image_path'] == row['image_path'])]
+                        if not match.empty:
+                            stored_objects = json.loads(match.iloc[0]['important_characters_and_objects'])
+                            for i in range(min(len(objects), len(stored_objects))):
+                                if 'user_present' in stored_objects[i]:
+                                    objects[i]['user_present'] = stored_objects[i]['user_present']
+
+                    session['image_index'] = image_idx
+                    session['concept_index'] = len(objects) - 1
             return redirect(url_for('annotate'))
 
         present = request.form.get('present') == 'yes'
