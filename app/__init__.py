@@ -35,15 +35,32 @@ def annotate():
                 last_file = last_row['file_name']
 
                 matched_rows = input_data[input_data['file_name'] == last_file]
-                if not matched_rows.empty:
-                    image_idx = matched_rows.index[0]
-                    objects = json.loads(last_row['important_characters_and_objects'])
+                found_next = False
+
+                for idx in matched_rows.index:
+                    row = input_data.loc[idx]
+                    annotated_row = output_df[(output_df['file_name'] == last_file) & (output_df['image_path'] == row['image_path'])]
+                    print(f"annotated_row: {annotated_row}")
+                    if annotated_row.empty:
+                        objects = json.loads(row['important_characters_and_objects'])
+                        print(f"annotated_row is empty, using row objects: {objects}")
+                    else:
+                        objects = json.loads(annotated_row.iloc[0]['important_characters_and_objects'])
+                        print(f"annotated_row is not empty, using annotated_row objects: {objects}")
+
                     for i, obj in enumerate(objects):
                         if 'user_present' not in obj:
+                            image_idx = idx
                             concept_idx = i
+                            found_next = True
                             break
-                    else:
-                        image_idx += 1
+                    if found_next:
+                        break
+
+                if not found_next:
+                    next_idx = matched_rows.index[-1] + 1
+                    if next_idx < len(input_data):
+                        image_idx = next_idx
                         concept_idx = 0
 
         session['image_index'] = int(image_idx)
@@ -56,16 +73,6 @@ def annotate():
         return render_template('done.html')
 
     row = input_data.iloc[image_idx]
-
-
-    # Keep full row from input_data but update only `important_characters_and_objects` if already annotated
-    if os.path.exists(OUTPUT_CSV):
-        output_df = pd.read_csv(OUTPUT_CSV)
-        matched = output_df[output_df['file_name'] == row['file_name']]
-        if not matched.empty:
-            annotated_row = matched.iloc[0]
-            row['important_characters_and_objects'] = annotated_row['important_characters_and_objects']
-
     objects = json.loads(row['important_characters_and_objects'])
 
     if request.method == 'POST':
@@ -97,7 +104,7 @@ def annotate():
 
         if os.path.exists(OUTPUT_CSV):
             output_df = pd.read_csv(OUTPUT_CSV)
-            match_idx = output_df[output_df['file_name'] == row['file_name']].index
+            match_idx = output_df[(output_df['file_name'] == row['file_name']) & (output_df['image_path'] == row['image_path'])].index
 
             if not match_idx.empty:
                 output_df.loc[match_idx[0]] = output_row
