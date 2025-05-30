@@ -40,13 +40,15 @@ def annotate():
                 for idx in matched_rows.index:
                     row = input_data.loc[idx]
                     annotated_row = output_df[(output_df['file_name'] == last_file) & (output_df['image_path'] == row['image_path'])]
-                    print(f"annotated_row: {annotated_row}")
-                    if annotated_row.empty:
-                        objects = json.loads(row['important_characters_and_objects'])
-                        print(f"annotated_row is empty, using row objects: {objects}")
-                    else:
-                        objects = json.loads(annotated_row.iloc[0]['important_characters_and_objects'])
-                        print(f"annotated_row is not empty, using annotated_row objects: {objects}")
+
+                    base_objects = json.loads(row['important_characters_and_objects'])
+                    objects = base_objects.copy()
+
+                    if not annotated_row.empty:
+                        stored_objects = json.loads(annotated_row.iloc[0]['important_characters_and_objects'])
+                        for i in range(min(len(objects), len(stored_objects))):
+                            if 'user_present' in stored_objects[i]:
+                                objects[i]['user_present'] = stored_objects[i]['user_present']
 
                     for i, obj in enumerate(objects):
                         if 'user_present' not in obj:
@@ -74,6 +76,15 @@ def annotate():
 
     row = input_data.iloc[image_idx]
     objects = json.loads(row['important_characters_and_objects'])
+
+    if os.path.exists(OUTPUT_CSV):
+        output_df = pd.read_csv(OUTPUT_CSV)
+        match = output_df[(output_df['file_name'] == row['file_name']) & (output_df['image_path'] == row['image_path'])]
+        if not match.empty:
+            stored_objects = json.loads(match.iloc[0]['important_characters_and_objects'])
+            for i in range(min(len(objects), len(stored_objects))):
+                if 'user_present' in stored_objects[i]:
+                    objects[i]['user_present'] = stored_objects[i]['user_present']
 
     if request.method == 'POST':
         action = request.form.get('action')
