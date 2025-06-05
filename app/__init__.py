@@ -1,18 +1,34 @@
+# app.py
 from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory
-from pathlib import Path
-import pandas as pd
-import os
-import json
+from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+import json
+import os
+from pathlib import Path
 
 app = Flask(__name__, template_folder='../templates')
 app.secret_key = 'supersecretkey'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///annotations.db'
+db = SQLAlchemy(app)
 
-INPUT_CSV = '/mnt/ceph/storage/data-tmp/current/majo2970/illumulus-label/labeled_data_with_entities.csv'
-OUTPUT_CSV = '/mnt/ceph/storage/data-tmp/current/majo2970/illumulus-label/data/annotations.csv'
 IMAGE_FOLDER = '/mnt/ceph/storage/data-tmp/current/majo2970/illumulus-label/img/'
 
-input_data = pd.read_csv(INPUT_CSV)
+class InputData(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    file_name = db.Column(db.String, index=True)
+    image_path = db.Column(db.String)
+    story_string = db.Column(db.String)
+    crux = db.Column(db.String)
+    important_characters_and_objects = db.Column(db.Text)  # JSON as string
+
+class Annotation(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    file_name = db.Column(db.String, index=True)
+    image_path = db.Column(db.String)
+    story_string = db.Column(db.String)
+    crux = db.Column(db.String)
+    important_characters_and_objects = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime)
 
 @app.route('/custom_images/<filename>')
 def custom_image(filename):
@@ -24,49 +40,13 @@ def index():
 
 @app.route('/annotate', methods=['GET', 'POST'])
 def annotate():
-    if request.method == 'GET' and (not os.path.exists(OUTPUT_CSV) or 'image_index' not in session):
-        image_idx = 0
-        concept_idx = 0
+    input_data = InputData.query.order_by(InputData.id).all()
+    if not input_data:
+        return "No input data available."
 
-        if os.path.exists(OUTPUT_CSV):
-            output_df = pd.read_csv(OUTPUT_CSV)
-            if not output_df.empty:
-                last_row = output_df.iloc[-1]
-                last_file = last_row['file_name']
-
-                matched_rows = input_data[input_data['file_name'] == last_file]
-                found_next = False
-
-                for idx in matched_rows.index:
-                    row = input_data.loc[idx]
-                    annotated_row = output_df[(output_df['file_name'] == last_file) & (output_df['image_path'] == row['image_path'])]
-
-                    base_objects = json.loads(row['important_characters_and_objects'])
-                    objects = base_objects.copy()
-
-                    if not annotated_row.empty:
-                        stored_objects = json.loads(annotated_row.iloc[0]['important_characters_and_objects'])
-                        for i in range(min(len(objects), len(stored_objects))):
-                            if 'user_present' in stored_objects[i]:
-                                objects[i]['user_present'] = stored_objects[i]['user_present']
-
-                    for i, obj in enumerate(objects):
-                        if 'user_present' not in obj:
-                            image_idx = idx
-                            concept_idx = i
-                            found_next = True
-                            break
-                    if found_next:
-                        break
-
-                if not found_next:
-                    next_idx = matched_rows.index[-1] + 1
-                    if next_idx < len(input_data):
-                        image_idx = next_idx
-                        concept_idx = 0
-
-        session['image_index'] = int(image_idx)
-        session['concept_index'] = int(concept_idx)
+    if request.method == 'GET' and 'image_index' not in session:
+        session['image_index'] = 0
+        session['concept_index'] = 0
 
     image_idx = session.get('image_index', 0)
     concept_idx = session.get('concept_index', 0)
@@ -74,17 +54,15 @@ def annotate():
     if image_idx >= len(input_data):
         return render_template('done.html')
 
-    row = input_data.iloc[image_idx]
-    objects = json.loads(row['important_characters_and_objects'])
+    row = input_data[image_idx]
+    objects = json.loads(row.important_characters_and_objects)
 
-    if os.path.exists(OUTPUT_CSV):
-        output_df = pd.read_csv(OUTPUT_CSV)
-        match = output_df[(output_df['file_name'] == row['file_name']) & (output_df['image_path'] == row['image_path'])]
-        if not match.empty:
-            stored_objects = json.loads(match.iloc[0]['important_characters_and_objects'])
-            for i in range(min(len(objects), len(stored_objects))):
-                if 'user_present' in stored_objects[i]:
-                    objects[i]['user_present'] = stored_objects[i]['user_present']
+    match = Annotation.query.filter_by(file_name=row.file_name, image_path=row.image_path).first()
+    if match:
+        stored_objects = json.loads(match.important_characters_and_objects)
+        for i in range(min(len(objects), len(stored_objects))):
+            if 'user_present' in stored_objects[i]:
+                objects[i]['user_present'] = stored_objects[i]['user_present']
 
     if request.method == 'POST':
         action = request.form.get('action')
@@ -94,52 +72,38 @@ def annotate():
                 session['concept_index'] = concept_idx - 1
             else:
                 if image_idx > 0:
-                    image_idx -= 1
-                    row = input_data.iloc[image_idx]
-                    objects = json.loads(row['important_characters_and_objects'])
-
-                    if os.path.exists(OUTPUT_CSV):
-                        output_df = pd.read_csv(OUTPUT_CSV)
-                        match = output_df[(output_df['file_name'] == row['file_name']) & (output_df['image_path'] == row['image_path'])]
-                        if not match.empty:
-                            stored_objects = json.loads(match.iloc[0]['important_characters_and_objects'])
-                            for i in range(min(len(objects), len(stored_objects))):
-                                if 'user_present' in stored_objects[i]:
-                                    objects[i]['user_present'] = stored_objects[i]['user_present']
-
-                    session['image_index'] = image_idx
+                    session['image_index'] = image_idx - 1
+                    row = input_data[image_idx - 1]
+                    objects = json.loads(row.important_characters_and_objects)
+                    match = Annotation.query.filter_by(file_name=row.file_name, image_path=row.image_path).first()
+                    if match:
+                        stored_objects = json.loads(match.important_characters_and_objects)
+                        for i in range(min(len(objects), len(stored_objects))):
+                            if 'user_present' in stored_objects[i]:
+                                objects[i]['user_present'] = stored_objects[i]['user_present']
                     session['concept_index'] = len(objects) - 1
             return redirect(url_for('annotate'))
 
         present = request.form.get('present') == 'yes'
         objects[concept_idx]['user_present'] = present
 
-        output_row = {
-            'file_name': row['file_name'],
-            'image_path': row['image_path'],
-            'story_string': row['story_string'],
-            'crux': row['crux'],
-            'important_characters_and_objects': json.dumps(objects),
-            'timestamp': datetime.utcnow().isoformat()
-        }
-
-        Path(Path(OUTPUT_CSV).parent).mkdir(parents=True, exist_ok=True)
-
-        if os.path.exists(OUTPUT_CSV):
-            output_df = pd.read_csv(OUTPUT_CSV)
-            match_idx = output_df[(output_df['file_name'] == row['file_name']) & (output_df['image_path'] == row['image_path'])].index
-
-            if not match_idx.empty:
-                output_df.loc[match_idx[0]] = output_row
-            else:
-                output_df = pd.concat([output_df, pd.DataFrame([output_row])], ignore_index=True)
+        existing = Annotation.query.filter_by(file_name=row.file_name, image_path=row.image_path).first()
+        if existing:
+            existing.important_characters_and_objects = json.dumps(objects)
+            existing.timestamp = datetime.utcnow()
         else:
-            output_df = pd.DataFrame([output_row])
-
-        output_df.to_csv(OUTPUT_CSV, index=False)
+            ann = Annotation(
+                file_name=row.file_name,
+                image_path=row.image_path,
+                story_string=row.story_string,
+                crux=row.crux,
+                important_characters_and_objects=json.dumps(objects),
+                timestamp=datetime.utcnow()
+            )
+            db.session.add(ann)
+        db.session.commit()
 
         session['concept_index'] = concept_idx + 1
-
         if session['concept_index'] >= len(objects):
             session['image_index'] = image_idx + 1
             session['concept_index'] = 0
@@ -147,11 +111,11 @@ def annotate():
         return redirect(url_for('annotate'))
 
     concept = objects[concept_idx]
-    image_path = url_for('custom_image', filename=row["image_path"])
+    image_path = url_for('custom_image', filename=row.image_path)
 
     return render_template('index.html',
                            image_path=image_path,
-                           story=row['story_string'],
+                           story=row.story_string,
                            concept=concept,
                            image_num=image_idx+1,
                            concept_num=concept_idx+1,
@@ -159,4 +123,6 @@ def annotate():
                            total_concepts=len(objects))
 
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
     app.run(debug=True)
