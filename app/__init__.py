@@ -8,7 +8,7 @@ from pathlib import Path
 
 app = Flask(__name__, template_folder='../templates')
 app.secret_key = 'supersecretkey'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///annotations.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////mnt/ceph/storage/data-tmp/current/majo2970/illumulus-label/data/annotations.db'
 db = SQLAlchemy(app)
 
 IMAGE_FOLDER = '/mnt/ceph/storage/data-tmp/current/majo2970/illumulus-label/img/'
