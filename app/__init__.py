@@ -63,7 +63,12 @@ def annotate():
 
     if request.method == 'POST':
         present = request.form.get('present') == 'yes'
-        input_id = int(request.form.get('input_id'))
+        input_id = request.form.get('input_id')
+
+        if input_id is None:
+            return "Missing input_id", 400
+
+        input_id = int(input_id)
         record = InputData.query.get(input_id)
 
         if record:
@@ -89,13 +94,31 @@ def annotate():
     annotated = Annotation.query.filter_by(file_name=row.file_name, image_path=row.image_path, object_name=row.object_name).first()
     image_path = url_for('custom_image', filename=row.image_path)
 
+    total_concepts = InputData.query.count()
+    total_images = len(set((r.file_name, r.image_path) for r in InputData.query.all()))
+    concept_num = InputData.query.order_by(InputData.id).filter(InputData.id <= row.id).count()
+
+    seen_images = set()
+    image_num = 0
+    for r in InputData.query.order_by(InputData.id):
+        key = (r.file_name, r.image_path)
+        if key not in seen_images:
+            image_num += 1
+            seen_images.add(key)
+        if r.id == row.id:
+            break
+
     return render_template('index.html',
                            image_path=image_path,
                            story=row.story_string,
                            concept={'name': row.object_name},
                            image_idx=row.id,
                            present=annotated.user_present if annotated else None,
-                           input_id=row.id)
+                           input_id=row.id,
+                           image_num=image_num,
+                           concept_num=concept_num,
+                           total_images=total_images,
+                           total_concepts=total_concepts)
 
 # @app.route('/reset_db')
 # def reset_db():
