@@ -91,18 +91,20 @@
 
     <h2>Is "<em>{{ concept.name }}</em>" present in the image?</h2>
 
-    <form method="post">
-      <div class="btn-group">
-        <button type="submit" name="present" value="yes" class="yes">Yes</button>
-        <button type="submit" name="present" value="no" class="no">No</button>
-      </div>
-      <input type="hidden" name="action" value="next">
-    </form>
+<form method="post">
+  <div class="btn-group">
+    <button type="submit" name="present" value="yes" class="yes">Yes</button>
+    <button type="submit" name="present" value="no" class="no">No</button>
+  </div>
+  <input type="hidden" name="input_id" value="{{ input_id }}">
+  <input type="hidden" name="action" value="forward">
+</form>
 
-    <form method="post" style="margin-top: 1rem;">
-      <input type="hidden" name="action" value="prev">
-      <button type="submit" class="back-btn">← Back</button>
-    </form>
+<form method="post" style="margin-top: 1rem;">
+  <input type="hidden" name="input_id" value="{{ input_id }}">
+  <input type="hidden" name="action" value="prev">
+  <button type="submit" class="back-btn">← Back</button>
+</form>
   </div>
 </body>
 </html>
