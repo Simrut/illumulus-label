@@ -5,7 +5,7 @@ import os
 
 app = Flask(__name__, template_folder='../templates')
 app.secret_key = 'supersecretkey'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////mnt/ceph/storage/data-tmp/current/majo2970/illumulus-label/data/annotations.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////mnt/ceph/storage/data-tmp/current/majo2970/illumulus-label/data/annotations_with_gt.db'
 db = SQLAlchemy(app)
 
 IMAGE_FOLDER = '/mnt/ceph/storage/data-tmp/current/majo2970/illumulus-label/img/'
@@ -15,8 +15,8 @@ class InputData(db.Model):
     file_name = db.Column(db.String, index=True)
     image_path = db.Column(db.String)
     story_string = db.Column(db.String)
-    crux = db.Column(db.String)
     object_name = db.Column(db.String)
+    present_in_image = db.Column(db.Boolean, default=None, nullable=True)
     user_present = db.Column(db.Boolean, default=None, nullable=True)
 
 class Annotation(db.Model):
