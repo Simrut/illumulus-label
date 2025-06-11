@@ -43,14 +43,26 @@ def get_annotatable(direction='forward', current_id=None):
         next_idx = idx + 1 if direction == 'forward' else idx - 1
 
         if next_idx < 0:
-            return ids[0]  # Stay on first image
+            return ids[0]
         elif next_idx >= len(ids):
-            return None  # End of images
+            return None
         else:
             return ids[next_idx]
     except ValueError:
         return None
 
+def get_last_annotated_id():
+    last_ann = Annotation.query.order_by(Annotation.timestamp.desc()).first()
+    if not last_ann:
+        return None
+
+    record = InputData.query.filter_by(
+        file_name=last_ann.file_name,
+        image_path=last_ann.image_path,
+        object_name=last_ann.object_name
+    ).first()
+
+    return record.id if record else None
 
 @app.route('/custom_images/<filename>')
 def custom_image(filename):
@@ -85,11 +97,15 @@ def annotate():
                 )
                 db.session.add(ann)
 
-            if direction =="forward":
+            if direction == "forward":
                 ann.user_present = present
                 ann.timestamp = datetime.utcnow()
                 db.session.commit()
             current_id = input_id
+
+    if current_id is None:
+        last_ann_id = get_last_annotated_id()
+        current_id = last_ann_id if last_ann_id is not None else get_annotatable('forward', None)
 
     next_id = get_annotatable(direction, current_id)
     if next_id is None:
@@ -124,12 +140,6 @@ def annotate():
                            concept_num=concept_num,
                            total_images=total_images,
                            total_concepts=total_concepts)
-
-# @app.route('/reset_db')
-# def reset_db():
-#     Annotation.query.delete()
-#     db.session.commit()
-#     return redirect(url_for('annotate'))
 
 if __name__ == '__main__':
     with app.app_context():
