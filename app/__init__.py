@@ -5,10 +5,10 @@ import os
 
 app = Flask(__name__, template_folder='../templates')
 app.secret_key = 'supersecretkey'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////mnt/c/Users/simon/Documents/thesis-ruth2/thesis-ruth/pipeline/create-data/illumulus/webform_manual_feedback_data/annotations.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////mnt/ceph/storage/data-tmp/current/majo2970/illumulus-label/data/annotations.db'
 db = SQLAlchemy(app)
 
-IMAGE_FOLDER = '/mnt/ceph/storage/data-in-progress/data-teaching/theses/wstud-thesis-ruth/250514-thesis-safety_copy/data_sources/illumulus-examples/illumulus-stories/img/'
+IMAGE_FOLDER = '/mnt/ceph/storage/data-tmp/current/majo2970/illumulus-label/img/'
 
 class InputData(db.Model):
     id = db.Column(db.Integer, primary_key=True)
