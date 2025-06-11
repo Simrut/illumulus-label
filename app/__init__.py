@@ -85,9 +85,10 @@ def annotate():
                 )
                 db.session.add(ann)
 
-            ann.user_present = present
-            ann.timestamp = datetime.utcnow()
-            db.session.commit()
+            if direction =="forward":
+                ann.user_present = present
+                ann.timestamp = datetime.utcnow()
+                db.session.commit()
             current_id = input_id
 
     next_id = get_annotatable(direction, current_id)
