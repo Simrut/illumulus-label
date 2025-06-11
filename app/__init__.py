@@ -60,9 +60,11 @@ def get_last_annotated_id():
         file_name=last_ann.file_name,
         image_path=last_ann.image_path,
         object_name=last_ann.object_name
-    ).first()
+    ).order_by(InputData.id).first()
 
     return record.id if record else None
+
+
 
 @app.route('/custom_images/<filename>')
 def custom_image(filename):
@@ -105,9 +107,17 @@ def annotate():
 
     if current_id is None:
         last_ann_id = get_last_annotated_id()
-        current_id = last_ann_id if last_ann_id is not None else get_annotatable('forward', None)
+        
+        # if no annotations yet → start at id=1 directly
+        if last_ann_id is None:
+            current_id = 1
+            next_id = 1
+        else:
+            current_id = last_ann_id
+            next_id = get_annotatable(direction, current_id)
+    else:
+        next_id = get_annotatable(direction, current_id)
 
-    next_id = get_annotatable(direction, current_id)
     if next_id is None:
         return render_template('done.html')
 
