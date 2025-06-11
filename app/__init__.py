@@ -41,12 +41,16 @@ def get_annotatable(direction='forward', current_id=None):
     try:
         idx = ids.index(current_id)
         next_idx = idx + 1 if direction == 'forward' else idx - 1
-        if 0 <= next_idx < len(ids):
+
+        if next_idx < 0:
+            return ids[0]  # Stay on first image
+        elif next_idx >= len(ids):
+            return None  # End of images
+        else:
             return ids[next_idx]
     except ValueError:
-        pass
+        return None
 
-    return None
 
 @app.route('/custom_images/<filename>')
 def custom_image(filename):
